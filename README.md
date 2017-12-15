@@ -33,6 +33,8 @@ ARTM implementation project for assignment at Skoltech uni
 
 4. Implementing quality metrics (perplexity, sparsity, interpetability, coherence) and hold-out testing. As Lempitsky said, we should choose one metric as the main one to compare different models. I feel like coherence might be the choice, correct me if I'm wrong.
 
-5. Plotting and visual evaluation of topics.
+5. Setting up several models each using a subclass of regularizers. Training and evaluating their quality.
 
-6. Final report, presentation. **Marina** wanted to prepare a report.
+6. Plotting and visual evaluation of models.
+
+7. Final report, presentation. **Marina** wanted to prepare a report.
