@@ -9,30 +9,30 @@ ARTM implementation project for assignment at Skoltech uni
 
 3. Implementing regularizers as subclasses of some unified "Regularizer" oracle with methods for regularizer function and its derivatives. Be aware that not all of them might be used in the result report.
 
-..* Smoothing regularization.
+	* Smoothing regularization.
 
-..* Sparsing regularization.
+	* Sparsing regularization.
 
-..* Combining smoothing and sparsing.
+	* Combining smoothing and sparsing.
 
-..* Semi-supervised learning (??).
+	* Semi-supervised learning (??).
 
-..* Sparsing regularization of topic probabilities for the words.
+	* Sparsing regularization of topic probabilities for the words.
 
-..* Elimination of insignificant topics.
+	* Elimination of insignificant topics.
 
-..* Covariance regularization for topics.
+	* Covariance regularization for topics.
 
-..* Covariance regularization for documents.
+	* Covariance regularization for documents.
 
-..* Coherence maximization.
+	* Coherence maximization.
 
-..* The classification regularizer (use meta-data as classes).
+	* The classification regularizer (use meta-data as classes).
 
-..* Label regularization.
+	* Label regularization.
 
 4. Implementing quality metrics (perplexity, sparsity, interpetability, coherence) and hold-out testing. As Lempitsky said, we should choose one metric as the main one to compare different models. I feel like coherence might be the choice, correct me if I'm wrong.
 
 5. Plotting and visual evaluation of topics.
 
-6. Final report, presentation.
+6. Final report, presentation. **Marina** wanted to prepare a report.
