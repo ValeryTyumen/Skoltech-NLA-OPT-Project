@@ -3,7 +3,7 @@ ARTM implementation project for assignment at Skoltech uni
 
 ## Subtasks to split between team members (you can edit the README to assign yourself):
 
-1. Dataset parsing. You need to parse OpenCorpora dataset with and without lemmas (in the latter case you have to put the data through Mystem using some Python wrapperor on hand). You have to extract metadata as well in a convenient form. **Sasha** wanted to do that AFAIK.
+1. Dataset parsing. You need to parse OpenCorpora dataset with and without lemmas (in the latter case you have to put the data through Mystem using some Python wrapper or by hand). You have to extract metadata as well in a convenient form. **Sasha** wanted to do that AFAIK.
 
 2. EM algorithm for ARTM. **I** feel like doing that myself.
 
