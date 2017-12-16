@@ -37,4 +37,6 @@ ARTM implementation project for assignment at Skoltech uni
 
 6. Plotting and visual evaluation of models.
 
+8. Benchmarking, comparison with BigARTM and gensim.
+
 7. Final report, presentation. **Marina** wanted to prepare a report.
