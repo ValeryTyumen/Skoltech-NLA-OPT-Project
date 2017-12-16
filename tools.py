@@ -6,6 +6,8 @@ def compute_frequencies(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_pro
         This logic is used inside EM-algorithm, but also in some regularizers, that's why it's here
     """
 
+    EPSILON = 1e-10
+
     docs_count = word_in_doc_freqs.shape[1]
     topics_count = topic_in_doc_probs.shape[0]
 
@@ -25,6 +27,9 @@ def compute_frequencies(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_pro
     for (word_index, doc_index), word_in_doc_freq in word_in_doc_freqs.items():
 
         normalization_constant = word_in_topic_probs[word_index].dot(topic_in_doc_probs[:, doc_index])
+
+        if normalization_constant < EPSILON:
+            continue
 
         for topic_index in range(topics_count):
 

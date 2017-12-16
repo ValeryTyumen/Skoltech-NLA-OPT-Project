@@ -55,6 +55,8 @@ class ARTM:
     def _do_em_iteration(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs,
             word_in_topics_freqs_buffer, topic_in_doc_freqs_buffer):
 
+        EPSILON = 1e-10
+
         word_in_topics_freqs, topic_in_doc_freqs, _, _ = compute_frequencies(word_in_doc_freqs,
                 word_in_topic_probs, topic_in_doc_probs, word_in_topics_freqs_buffer,
                 topic_in_doc_freqs_buffer) 
@@ -81,12 +83,22 @@ class ARTM:
 
         np.clip(unnormalized_word_in_topic_probs, 0, None, out=unnormalized_word_in_topic_probs)
         np.clip(unnormalized_topic_in_doc_probs, 0, None, out=unnormalized_topic_in_doc_probs)
+ 
+        word_in_topic_prob_norm_consts = unnormalized_word_in_topic_probs.sum(axis=0)
+        word_in_topic_prob_norm_const_is_not_small = (word_in_topic_prob_norm_consts > EPSILON)
 
         word_in_topic_probs[:, :] = unnormalized_word_in_topic_probs
-        word_in_topic_probs /= word_in_topic_probs.sum(axis=0)
+        word_in_topic_probs[:, np.logical_not(word_in_topic_prob_norm_const_is_not_small)] = 0
+        word_in_topic_probs[:, word_in_topic_prob_norm_const_is_not_small] /= \
+                word_in_topic_prob_norm_consts[word_in_topic_prob_norm_const_is_not_small] 
+
+        topic_in_doc_prob_norm_consts = unnormalized_topic_in_doc_probs.sum(axis=0)
+        topic_in_doc_prob_norm_const_is_not_small = (topic_in_doc_prob_norm_consts > EPSILON)
 
         topic_in_doc_probs[:, :] = unnormalized_topic_in_doc_probs
-        topic_in_doc_probs /= topic_in_doc_probs.sum(axis=0)
+        topic_in_doc_probs[:, np.logical_not(topic_in_doc_prob_norm_const_is_not_small)] = 0
+        topic_in_doc_probs[:, topic_in_doc_prob_norm_const_is_not_small] /= \
+                topic_in_doc_prob_norm_consts[topic_in_doc_prob_norm_const_is_not_small]
 
     def _get_loglikelihood(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs):
 
