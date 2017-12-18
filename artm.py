@@ -175,6 +175,25 @@ class ARTMTrainResult:
 
         return np.exp(-self._loglikelihoods[-1]/total_words_count)
 
+    def get_holdout_perplexity(self, holdout_word_in_doc_freqs, iterations_count=100, verbose=False,
+            seed=None):
+
+        holdout_freqs_part1, holdout_freqs_part2 = self._split_holdout_data(holdout_word_in_doc_freqs)
+
+        artm = ARTM(self._topics_count, [], [], word_in_topic_probs=self._word_in_topic_probs)
+
+        artm_part1_train_result = artm.train(holdout_freqs_part1, self._words_list,
+                iterations_count=iterations_count, verbose=verbose, seed=seed)
+
+        part1_perplexity = artm_part1_train_result.get_train_perplexity()
+
+        part2_loglikelihood = ARTM.get_pure_loglikelihood(holdout_freqs_part2, self._word_in_topic_probs,
+                artm_part1_train_result.topic_in_doc_probs)
+
+        part2_perplexity = np.exp(-part2_loglikelihood/holdout_freqs_part2.sum())
+
+        return part1_perplexity, part2_perplexity
+
     def _split_holdout_data(self, holdout_word_in_doc_freqs):
 
         freqs_csc = sparse.csc_matrix(holdout_word_in_doc_freqs)
@@ -203,22 +222,3 @@ class ARTMTrainResult:
                     splitted_freqs_part2[word_index, doc_index] += 1
 
         return splitted_freqs_part1, splitted_freqs_part2
-
-    def get_holdout_perplexity(self, holdout_word_in_doc_freqs, iterations_count=100, verbose=False,
-            seed=None):
-
-        holdout_freqs_part1, holdout_freqs_part2 = self._split_holdout_data(holdout_word_in_doc_freqs)
-
-        artm = ARTM(self._topics_count, [], [], word_in_topic_probs=self._word_in_topic_probs)
-
-        artm_part1_train_result = artm.train(holdout_freqs_part1, self._words_list,
-                iterations_count=iterations_count, verbose=verbose, seed=seed)
-
-        part1_perplexity = artm_part1_train_result.get_train_perplexity()
-
-        part2_loglikelihood = ARTM.get_pure_loglikelihood(holdout_freqs_part2, self._word_in_topic_probs,
-                artm_part1_train_result.topic_in_doc_probs)
-
-        part2_perplexity = np.exp(-part2_loglikelihood/holdout_freqs_part2.sum())
-
-        return part1_perplexity, part2_perplexity
