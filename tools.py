@@ -28,9 +28,6 @@ def compute_frequencies(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_pro
 
         normalization_constant = word_in_topic_probs[word_index].dot(topic_in_doc_probs[:, doc_index])
 
-        if normalization_constant < EPSILON:
-            continue
-
         for topic_index in range(topics_count):
 
             freq_increment = word_in_doc_freq*word_in_topic_probs[word_index, topic_index]*\

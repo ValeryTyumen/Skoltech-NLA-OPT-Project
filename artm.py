@@ -1,13 +1,25 @@
 import numpy as np
+from scipy import sparse
 from tools import compute_frequencies
 
 class ARTM:
 
-    def __init__(self, topics_count, regularizers, regularizer_weights):
+    def __init__(self, topics_count, regularizers, regularizer_weights, word_in_topic_probs=None):
 
         self._topics_count = topics_count
         self._regularizers = regularizers
         self._regularizer_weights = regularizer_weights
+
+        if word_in_topic_probs is not None:
+
+            self._fixed_word_in_topic_probs = True
+            self._word_in_topic_probs = word_in_topic_probs
+
+        else:
+
+            self._fixed_word_in_topic_probs = False
+
+    _epsilon = 1e-10
 
     def train(self, word_in_doc_freqs, words_list, iterations_count=100, verbose=False, seed=None):
         """
@@ -23,15 +35,18 @@ class ARTM:
             np.random.seed(seed=seed)
 
         # \phi_{wt}
-        word_in_topic_probs = np.random.uniform(size=(words_count, self._topics_count))
-        word_in_topic_probs /= word_in_topic_probs.sum(axis=0)
+        if self._fixed_word_in_topic_probs:
+            word_in_topic_probs = self._word_in_topic_probs
+        else:
+            word_in_topic_probs = np.random.uniform(size=(words_count, self._topics_count))
+            word_in_topic_probs /= word_in_topic_probs.sum(axis=0)
 
         # \theta_{td}
         topic_in_doc_probs = np.random.uniform(size=(self._topics_count, docs_count))
         topic_in_doc_probs /= topic_in_doc_probs.sum(axis=0)
 
         # n_{wt}
-        word_in_topics_freqs_buffer = np.zeros_like(word_in_topic_probs)
+        word_in_topic_freqs_buffer = np.zeros_like(word_in_topic_probs)
         # n_{dt}
         topic_in_doc_freqs_buffer = np.zeros_like(topic_in_doc_probs)
 
@@ -40,7 +55,7 @@ class ARTM:
         for iteration_index in range(iterations_count):
 
             self._do_em_iteration(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs,
-                    word_in_topics_freqs_buffer, topic_in_doc_freqs_buffer)
+                    word_in_topic_freqs_buffer, topic_in_doc_freqs_buffer)
 
             loglikelihood = self._get_loglikelihood(word_in_doc_freqs, word_in_topic_probs,
                         topic_in_doc_probs)
@@ -50,15 +65,14 @@ class ARTM:
             if verbose:
                 print('iter#{0}: loglike={1}'.format(iteration_index + 1, loglikelihood))
 
-        return ARTMTrainResult(word_in_topic_probs, topic_in_doc_probs, words_list, loglikelihoods)
+        return ARTMTrainResult(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs, words_list,
+                loglikelihoods)
 
     def _do_em_iteration(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs,
-            word_in_topics_freqs_buffer, topic_in_doc_freqs_buffer):
-
-        EPSILON = 1e-10
+            word_in_topic_freqs_buffer, topic_in_doc_freqs_buffer):
 
         word_in_topics_freqs, topic_in_doc_freqs, _, _ = compute_frequencies(word_in_doc_freqs,
-                word_in_topic_probs, topic_in_doc_probs, word_in_topics_freqs_buffer,
+                word_in_topic_probs, topic_in_doc_probs, word_in_topic_freqs_buffer,
                 topic_in_doc_freqs_buffer) 
 
         unnormalized_word_in_topic_probs = word_in_topics_freqs
@@ -81,46 +95,54 @@ class ARTM:
 
             unnormalized_topic_in_doc_probs += topic_in_doc_freqs_addition
 
-        np.clip(unnormalized_word_in_topic_probs, 0, None, out=unnormalized_word_in_topic_probs)
-        np.clip(unnormalized_topic_in_doc_probs, 0, None, out=unnormalized_topic_in_doc_probs)
- 
-        word_in_topic_prob_norm_consts = unnormalized_word_in_topic_probs.sum(axis=0)
-        word_in_topic_prob_norm_const_is_not_small = (word_in_topic_prob_norm_consts > EPSILON)
+        if not self._fixed_word_in_topic_probs:
 
-        word_in_topic_probs[:, :] = unnormalized_word_in_topic_probs
-        word_in_topic_probs[:, np.logical_not(word_in_topic_prob_norm_const_is_not_small)] = 0
-        word_in_topic_probs[:, word_in_topic_prob_norm_const_is_not_small] /= \
-                word_in_topic_prob_norm_consts[word_in_topic_prob_norm_const_is_not_small] 
+            np.clip(unnormalized_word_in_topic_probs, self._epsilon, None, out=unnormalized_word_in_topic_probs) 
 
-        topic_in_doc_prob_norm_consts = unnormalized_topic_in_doc_probs.sum(axis=0)
-        topic_in_doc_prob_norm_const_is_not_small = (topic_in_doc_prob_norm_consts > EPSILON)
+            word_in_topic_probs[:, :] = unnormalized_word_in_topic_probs
+            word_in_topic_probs /= unnormalized_word_in_topic_probs.sum(axis=0)
+
+        np.clip(unnormalized_topic_in_doc_probs, self._epsilon, None, out=unnormalized_topic_in_doc_probs)
 
         topic_in_doc_probs[:, :] = unnormalized_topic_in_doc_probs
-        topic_in_doc_probs[:, np.logical_not(topic_in_doc_prob_norm_const_is_not_small)] = 0
-        topic_in_doc_probs[:, topic_in_doc_prob_norm_const_is_not_small] /= \
-                topic_in_doc_prob_norm_consts[topic_in_doc_prob_norm_const_is_not_small]
+        topic_in_doc_probs /= unnormalized_topic_in_doc_probs.sum(axis=0)
 
     def _get_loglikelihood(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs):
 
-        loglikelihood = 0.0
-
-        for (word_index, doc_index), word_in_doc_freq in word_in_doc_freqs.items():
-            loglikelihood += word_in_doc_freq*np.log(word_in_topic_probs[word_index].dot(
-                    topic_in_doc_probs[:, doc_index]))
+        loglikelihood = self.get_pure_loglikelihood(word_in_doc_freqs, word_in_topic_probs,
+                topic_in_doc_probs)
 
         for regularizer, weight in zip(self._regularizers, self._regularizer_weights):
             loglikelihood += weight*regularizer.get_value(word_in_topic_probs, topic_in_doc_probs)
 
         return loglikelihood
 
+    @classmethod
+    def get_pure_loglikelihood(cls, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs):
+
+        loglikelihood = 0.0
+
+        for (word_index, doc_index), word_in_doc_freq in word_in_doc_freqs.items():
+
+            normalization_constant = word_in_topic_probs[word_index].dot(
+                    topic_in_doc_probs[:, doc_index])
+
+            loglikelihood += word_in_doc_freq*np.log(np.maximum(normalization_constant, cls._epsilon))
+
+        return loglikelihood
+
 class ARTMTrainResult:
 
-    def __init__(self, word_in_topic_probs, topic_in_doc_probs, words_list, loglikelihoods):
+    def __init__(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs, words_list,
+            loglikelihoods):
 
+        self._word_in_doc_freqs = word_in_doc_freqs
         self._word_in_topic_probs = word_in_topic_probs
         self._topic_in_doc_probs = topic_in_doc_probs
         self._words_list = words_list
         self._loglikelihoods = loglikelihoods
+
+        self._topics_count = word_in_topic_probs.shape[1]
 
     @property
     def word_in_topic_probs(self):
@@ -146,3 +168,57 @@ class ARTMTrainResult:
     def get_top_topics_in_docs(self, top_topics_count):
 
         return np.argsort(self._topic_in_doc_probs, axis=0)[-top_topics_count:][::-1]
+
+    def get_train_perplexity(self):
+
+        total_words_count = self._word_in_doc_freqs.sum()
+
+        return np.exp(-self._loglikelihoods[-1]/total_words_count)
+
+    def _split_holdout_data(self, holdout_word_in_doc_freqs):
+
+        freqs_csc = sparse.csc_matrix(holdout_word_in_doc_freqs)
+
+        splitted_freqs_part1 = sparse.dok_matrix(holdout_word_in_doc_freqs.shape)
+        splitted_freqs_part2 = sparse.dok_matrix(holdout_word_in_doc_freqs.shape)
+
+        for doc_index in range(freqs_csc.shape[1]):
+
+            word_indices = []
+
+            for csc_index in range(freqs_csc.indptr[doc_index], freqs_csc.indptr[doc_index + 1]):
+                word_indices += [freqs_csc.indices[csc_index]]*freqs_csc.data[csc_index]
+
+            word_indices = np.array(word_indices)
+
+            words_in_doc_count = len(word_indices)
+
+            word_indices_permuted = word_indices[np.random.permutation(words_in_doc_count)]
+
+            for element_index, word_index in enumerate(word_indices_permuted):
+
+                if element_index < words_in_doc_count/2:
+                    splitted_freqs_part1[word_index, doc_index] += 1
+                else:
+                    splitted_freqs_part2[word_index, doc_index] += 1
+
+        return splitted_freqs_part1, splitted_freqs_part2
+
+    def get_holdout_perplexity(self, holdout_word_in_doc_freqs, iterations_count=100, verbose=False,
+            seed=None):
+
+        holdout_freqs_part1, holdout_freqs_part2 = self._split_holdout_data(holdout_word_in_doc_freqs)
+
+        artm = ARTM(self._topics_count, [], [], word_in_topic_probs=self._word_in_topic_probs)
+
+        artm_part1_train_result = artm.train(holdout_freqs_part1, self._words_list,
+                iterations_count=iterations_count, verbose=verbose, seed=seed)
+
+        part1_perplexity = artm_part1_train_result.get_train_perplexity()
+
+        part2_loglikelihood = ARTM.get_pure_loglikelihood(holdout_freqs_part2, self._word_in_topic_probs,
+                artm_part1_train_result.topic_in_doc_probs)
+
+        part2_perplexity = np.exp(-part2_loglikelihood/holdout_freqs_part2.sum())
+
+        return part1_perplexity, part2_perplexity
