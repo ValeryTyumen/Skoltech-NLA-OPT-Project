@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 class OpenCorporaParser:
     """Class for parsing open corpora."""
 
-    def __init__(self, max_features=10000, max_df=5000, min_df=20, stem=True):
+    def __init__(self, max_features=10000, max_df=5000, min_df=5, stem=True):
         """
         :param max_features: length of the vocab
         :param stem: whether to stem words
