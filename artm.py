@@ -21,7 +21,8 @@ class ARTM:
 
     _epsilon = 1e-10
 
-    def train(self, word_in_doc_freqs, words_list, iterations_count=100, verbose=False, seed=None):
+    def train(self, word_in_doc_freqs, words_list, pointwise_mutual_information, iterations_count=100,
+            verbose=False, seed=None, pmi_words_count=100):
         """
             word_in_topics_freqs - let it be `sparse.dok_matrix` for now
 
@@ -51,6 +52,7 @@ class ARTM:
         topic_in_doc_freqs_buffer = np.zeros_like(topic_in_doc_probs)
 
         loglikelihoods = []
+        pmi_metrics = []
 
         for iteration_index in range(iterations_count):
 
@@ -62,11 +64,20 @@ class ARTM:
 
             loglikelihoods.append(loglikelihood)
 
-            if verbose:
-                print('iter#{0}: loglike={1}'.format(iteration_index + 1, loglikelihood))
+            temporary_result = ARTMTrainResult(word_in_doc_freqs, pointwise_mutual_information,
+                    word_in_topic_probs, topic_in_doc_probs, words_list, loglikelihoods, pmi_metrics)
 
-        return ARTMTrainResult(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs, words_list,
-                loglikelihoods)
+            pmi_metric = temporary_result.get_pointwise_mutual_information_metric(
+                    top_words_count=pmi_words_count)
+
+            pmi_metrics.append(pmi_metric)
+
+            if verbose:
+                print('iter#{0}: loglike={1} pmi_metric={2}'.format(iteration_index + 1, loglikelihood,
+                        pmi_metric))
+
+        return ARTMTrainResult(word_in_doc_freqs, pointwise_mutual_information,
+                word_in_topic_probs, topic_in_doc_probs, words_list, loglikelihoods, pmi_metrics)
 
     def _do_em_iteration(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs,
             word_in_topic_freqs_buffer, topic_in_doc_freqs_buffer):
@@ -133,14 +144,16 @@ class ARTM:
 
 class ARTMTrainResult:
 
-    def __init__(self, word_in_doc_freqs, word_in_topic_probs, topic_in_doc_probs, words_list,
-            loglikelihoods):
+    def __init__(self, word_in_doc_freqs, pointwise_mutual_information, word_in_topic_probs,
+            topic_in_doc_probs, words_list, loglikelihoods, pmi_metrics):
 
         self._word_in_doc_freqs = word_in_doc_freqs
+        self._pointwise_mutual_information = pointwise_mutual_information
         self._word_in_topic_probs = word_in_topic_probs
         self._topic_in_doc_probs = topic_in_doc_probs
         self._words_list = words_list
         self._loglikelihoods = loglikelihoods
+        self._pmi_metrics = pmi_metrics
 
         self._topics_count = word_in_topic_probs.shape[1]
 
@@ -158,6 +171,11 @@ class ARTMTrainResult:
     def loglikelihoods(self):
 
         return self._loglikelihoods
+
+    @property
+    def pmi_metrics(self):
+
+        return self._pmi_metrics
 
     def get_top_words_in_topics(self, top_words_count):
 
@@ -223,7 +241,7 @@ class ARTMTrainResult:
 
         return splitted_freqs_part1, splitted_freqs_part2
 
-    def get_pointwise_mutual_information_metric(self, pointwise_mutual_information, top_words_count=10):
+    def get_pointwise_mutual_information_metric(self, top_words_count=100):
 
         top_word_indices_in_topics = self._get_top_word_indices_in_topics(top_words_count)
 
@@ -240,7 +258,7 @@ class ARTMTrainResult:
                     smaller_index = min(first_word_index, second_word_index)
                     bigger_index = max(first_word_index, second_word_index)
 
-                    pmi_sum += pointwise_mutual_information[smaller_index, bigger_index]
+                    pmi_sum += self._pointwise_mutual_information[smaller_index, bigger_index]
 
         top_pairs_count = top_words_count*(top_words_count - 1)/2
 
