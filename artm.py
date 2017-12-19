@@ -161,7 +161,7 @@ class ARTMTrainResult:
 
     def get_top_words_in_topics(self, top_words_count):
 
-        top_words_indices = np.argsort(self._word_in_topic_probs, axis=0)[-top_words_count:][::-1]
+        top_words_indices = self._get_top_word_indices_in_topics(top_words_count)
 
         return self._words_list[top_words_indices]
 
@@ -222,3 +222,27 @@ class ARTMTrainResult:
                     splitted_freqs_part2[word_index, doc_index] += 1
 
         return splitted_freqs_part1, splitted_freqs_part2
+
+    def get_pointwise_mutual_information_metric(self, pointwise_mutual_information, top_words_count=10):
+
+        top_word_indices_in_topics = self._get_top_word_indices_in_topics(top_words_count)
+
+        pmi_sum = 0.0
+
+        for topic_index in range(self._topics_count):
+
+            for first_word_index in range(top_words_count):
+                for second_word_index in range(first_word_index + 1, top_words_count):
+
+                    smaller_index = min(first_word_index, second_word_index)
+                    bigger_index = max(first_word_index, second_word_index)
+
+                    pmi_sum += pointwise_mutual_information[smaller_index, bigger_index]
+
+        top_pairs_count = top_words_count*(top_words_count - 1)/2
+
+        return pmi_sum/(top_pairs_count*self._topics_count)
+
+    def _get_top_word_indices_in_topics(self, top_words_count):
+
+        return np.argsort(self._word_in_topic_probs, axis=0)[-top_words_count:][::-1]
