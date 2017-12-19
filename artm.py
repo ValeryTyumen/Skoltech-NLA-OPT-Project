@@ -145,7 +145,7 @@ class ARTMTrainResult:
         self._topics_count = word_in_topic_probs.shape[1]
 
     @property
-    def word_in_topic_probs(self:
+    def word_in_topic_probs(self):
 
         return self._word_in_topic_probs
 
