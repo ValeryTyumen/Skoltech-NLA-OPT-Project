@@ -31,7 +31,7 @@ class EliminationOfInsignificantTopics(BaseRegularizer):
         topic_probs = topic_in_doc_probs.mean(axis=1)
         topic_probs = np.clip(topic_probs, self._epsilon, None)
 
-        regularization_eliminate_topic = tau*np.log(topic_probs).sum()
+        regularization_eliminate_topic = self._tau*np.log(topic_probs).sum()
 
         return regularization_eliminate_topic
 
