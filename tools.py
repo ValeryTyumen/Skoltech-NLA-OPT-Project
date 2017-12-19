@@ -62,7 +62,7 @@ def get_pointwise_mutual_information(word_in_doc_freqs, close_word_pairs):
 
     pointwise_mutual_information = docs_with_two_words_counts
 
-    for first_word_index, second_word_index in pointwise_mutual_information.keys():
+    for first_word_index, second_word_index in list(pointwise_mutual_information.keys()):
 
         docs_with_two_words_count = docs_with_two_words_counts[first_word_index, second_word_index] 
         docs_with_first_word_count = docs_with_word_counts[first_word_index]
