@@ -145,7 +145,7 @@ class ARTMTrainResult:
         self._topics_count = word_in_topic_probs.shape[1]
 
     @property
-    def word_in_topic_probs(self):
+    def word_in_topic_probs(self:
 
         return self._word_in_topic_probs
 
@@ -231,8 +231,11 @@ class ARTMTrainResult:
 
         for topic_index in range(self._topics_count):
 
-            for first_word_index in range(top_words_count):
-                for second_word_index in range(first_word_index + 1, top_words_count):
+            for first_index in range(top_words_count):
+                for second_index in range(first_word_index + 1, top_words_count):
+
+                    first_word_index = top_word_indices_in_topics[first_index, topic_index]
+                    second_word_index = top_word_indices_in_topics[second_index, topic_index]
 
                     smaller_index = min(first_word_index, second_word_index)
                     bigger_index = max(first_word_index, second_word_index)
