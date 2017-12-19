@@ -39,6 +39,16 @@ def compute_frequencies(word_in_doc_freqs, word_in_topic_probs, topic_in_doc_pro
 
     return word_in_topics_freqs, topic_in_doc_freqs, topic_freqs, doc_freqs
 
+def get_docs_with_two_words_counts(words_count, close_word_pairs):
+ 
+    docs_with_two_words_counts = sparse.dok_matrix((words_count, words_count), dtype=float)
+
+    for document_close_word_pairs in close_word_pairs:
+        for first_word_index, second_word_index in document_close_word_pairs:
+            docs_with_two_words_counts[first_word_index, second_word_index] += 1 
+
+    return docs_with_two_words_counts
+
 def get_pointwise_mutual_information(word_in_doc_freqs, close_word_pairs):
 
     words_count = word_in_doc_freqs.shape[0]
@@ -48,11 +58,7 @@ def get_pointwise_mutual_information(word_in_doc_freqs, close_word_pairs):
 
     docs_with_word_counts = csr_freqs.indptr[1:] - csr_freqs.indptr[:-1]
 
-    docs_with_two_words_counts = sparse.dok_matrix((words_count, words_count), dtype=float)
-
-    for document_close_word_pairs in close_word_pairs:
-        for first_word_index, second_word_index in document_close_word_pairs:
-            docs_with_two_words_counts[first_word_index, second_word_index] += 1
+    docs_with_two_words_counts = get_docs_with_two_words_counts(words_count, close_word_pairs)
 
     pointwise_mutual_information = docs_with_two_words_counts
 
