@@ -2,14 +2,14 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from base_regularizer import BaseRegularizer
 from tools import compute_frequencies
 import numpy as np
-
+import scipy.sparse as sparse
 # Only one class per document
 
 
 class ClassificationRegularizer(BaseRegularizer):
     """Classification regularizer."""
 
-    def __init__(self, tau, num_topics, num_docs, docs_classes, num_words, doc_freqs):
+    def __init__(self, tau, num_topics, num_docs, docs_classes, num_words, docs_freq):
         """
         Initialize regularizator
         :param tau: float, parameter of regularizer
@@ -25,8 +25,8 @@ class ClassificationRegularizer(BaseRegularizer):
         self._one_hot_encoder = OneHotEncoder()
 
         # m_{dc}
-        self._class_in_docs = self._one_hot_encoder.fit_transform(
-            self._encoded_classes.rehsape(-1, 1)).T.multiply(doc_freqs)
+        self._class_in_docs = sparse.dok_matrix(self._one_hot_encoder.fit_transform(
+            self._encoded_classes.reshape(-1, 1)).T.multiply(docs_freq))
         self._epsilon = 1e-10
 
         self._num_classes = len(np.unique(self._encoded_classes))
