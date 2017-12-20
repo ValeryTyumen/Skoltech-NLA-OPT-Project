@@ -45,24 +45,42 @@ class OpenCorporaParser:
             documents.append(raw_sentences)
             doc_categories = document.categories()
 
-            #process metadata
-            regex_year = re.compile("Год:.*")
-            doc_year = [m.group(0) for l in doc_categories
-                            for m in [regex_year.search(l)] if m]
+            year_doc, topic_doc = self._get_metadata(doc_categories)
+            year.append(year_doc)
+            topic.append(topic_doc)
 
-            if len(doc_year):
-                year.append(int(doc_year[0].split(':')[-1]))
-            else:
-                year.append(-1)
+        doc_term_matr = self._tf_vectorizer.fit_transform(documents)
 
-            regex_topic = re.compile("Тема:.*")
-            doc_topic = [m.group(0) for l in doc_categories
-                             for m in [regex_topic.search(l)] if m]
+        vocabulary = self._tf_vectorizer.vocabulary_
 
-            if len(doc_topic):
-                topic.append(doc_topic[0].split(':')[-1].lower())
-            else:
-                topic.append('UNK')
+        close_word_pairs = self._get_close_word_pairs(corpus, vocabulary)
+
+        return doc_term_matr, vocabulary, year, topic, close_word_pairs
+
+    def parse_lemmatized_open_corpora(self, path_to_corpus='./annot.opcorpora.no_ambig.xml'):
+        corpus = opencorpora.load(path_to_corpus)
+        documents = []
+        year = []
+        topic = []
+
+        for document in corpus:
+
+            document_tokens = document.tokens
+
+            if len(document_tokens) == 0:
+                continue
+
+            document_tokens = [token.lemma for token in document_tokens]
+
+            raw_sentences = " ".join(document_tokens)
+
+            documents.append(raw_sentences)
+            doc_categories = document.tags
+
+            year_doc, topic_doc = self._get_metadata(doc_categories)
+
+            year.append(year_doc)
+            topic.append(topic_doc)
 
         doc_term_matr = self._tf_vectorizer.fit_transform(documents)
 
@@ -78,9 +96,9 @@ class OpenCorporaParser:
 
         close_word_pairs = []
 
-        for document in corpus.iter_documents():
+        for document in corpus:
 
-            document_words = self._get_document_words(document)
+            document_words = [token.lemma for token in document.tokens]
 
             if len(document_words) == 0:
                 continue
@@ -129,3 +147,24 @@ class OpenCorporaParser:
                 document_words.append(word)
 
         return document_words
+
+    def _get_metadata(self, doc_categories):
+        # process metadata
+        regex_year = re.compile("Год:.*")
+        doc_year = [m.group(0) for l in doc_categories
+                    for m in [regex_year.search(l)] if m]
+
+        if len(doc_year):
+            year = int(doc_year[0].split(':')[-1])
+        else:
+            year = -1
+
+        regex_topic = re.compile("Тема:.*")
+        doc_topic = [m.group(0) for l in doc_categories
+                     for m in [regex_topic.search(l)] if m]
+
+        if len(doc_topic):
+            topic = doc_topic[0].split(':')[-1].lower()
+        else:
+            topic = 'UNK'
+        return year, topic
