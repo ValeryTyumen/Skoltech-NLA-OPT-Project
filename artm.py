@@ -181,7 +181,7 @@ class ARTMTrainResult:
 
         top_words_indices = self._get_top_word_indices_in_topics(top_words_count)
 
-        return self._words_list[top_words_indices]
+        return self._words_list[top_words_indices.T]
 
     def get_top_topics_in_docs(self, top_topics_count):
 
