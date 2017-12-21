@@ -191,7 +191,7 @@ class ARTMTrainResult:
 
         total_words_count = self._word_in_doc_freqs.sum()
 
-        return np.exp(-self._loglikelihoods[-1]/total_words_count)
+        return np.exp(-np.array(self._loglikelihoods)/total_words_count)
 
     def get_holdout_perplexity(self, holdout_word_in_doc_freqs, iterations_count=100, verbose=False,
             seed=None):
